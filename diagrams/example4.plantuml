@@ -1,0 +1,7 @@
+@startuml
+object Washington
+object NewYork
+object Manhattan
+NewYork --> Washington : "close"
+Manhattan --* NewYork : "neighborhoods"
+@enduml

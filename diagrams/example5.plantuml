@@ -1,0 +1,15 @@
+@startuml
+object Berlin {
+  name = "Berlin"
+}
+object "London the UK capital" as London {
+  name = "London"
+  population
+}
+map CapitalCity {
+ UK *-> London
+ USA => Washington
+ Germany *--> Berlin
+ Italy => Rome
+}
+@enduml

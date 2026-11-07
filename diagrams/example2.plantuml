@@ -1,0 +1,9 @@
+@startuml
+
+object o1 
+object "object2" as o2
+map m1 {   
+}
+map "map2" as m2 { 
+}
+@enduml
