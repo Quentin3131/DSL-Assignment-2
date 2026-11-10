@@ -46,7 +46,7 @@ trait BAMLTokensWithActions extends BAMLBase:
     ((s: String) => Name(s)) ~
     WSS
 
-  def StringLiteralRule: Rule[BAMLStringValue] = rule:
+  def StringLiteralRule: Rule1[BAMLStringValue] = rule:
     '"' ~ 
     capture(
       zeroOrMore(noneOf("\"\n\r"))
@@ -55,16 +55,59 @@ trait BAMLTokensWithActions extends BAMLBase:
     WSS ~>
     ((s: String) => BAMLStringValue(s))
 
-  // def IntLiteralRule: Rule1[Any] = ???
+  def IntLiteralRule: Rule1[BAMLIntValue] = rule:
+    capture(
+      optional('-') ~
+      ('0' | (anyOf("123456789") ~ zeroOrMore(CharPredicate.Digit)))
+    ) ~
+    WSS ~>
+    ((s: String) => BAMLIntValue(s.toInt))
 
-  // def FloatLiteralRule: Rule1[Any] = ???
+  def FloatLiteralRule: Rule1[BAMLFloatValue] = rule:
+    capture(
+      optional('-') ~
+      ('0' | (anyOf("123456789") ~ zeroOrMore(CharPredicate.Digit))) ~
+      '.' ~
+      oneOrMore(CharPredicate.Digit)
+    ) ~
+    WSS ~>
+    ((s: String) => BAMLFloatValue(s.toDouble))
 
-  // def BoolLiteralRule: Rule1[Any] = ???
+  def BoolLiteralRule: Rule1[BAMLBoolValue] = rule:
+    capture(("true" | "false")) ~
+    !(CharPredicate.AlphaNum | '_') ~
+    WSS ~>
+    ((s: String) => BAMLBoolValue(s.toBoolean))
 
-  // def BlockStringRule: Rule1[Any] = ???
+  def BlockStringRule: Rule1[BAMLPrompt] = rule:
+    "#\"" ~
+    capture(zeroOrMore(!"\"#" ~ ANY)) ~
+    "\"#" ~
+    WSS ~>
+    ((s: String) => BAMLPrompt(s))
 
-  // def EnvVariableRule: Rule1[Any] = ???
+  def EnvVariableRule: Rule1[BAMLEnvVariable] = rule:
+    "env." ~ 
+    Identifier ~>
+    ((name: Name) => BAMLEnvVariable(name))
 
-  // def ProviderRule: Rule1[Any] = ???
+
+  def ProviderRule: Rule1[BAMLProvider] = rule:
+    (
+      capture(
+        "openai-responses" | "openai-generic" | "openai" |
+        "azure-openai" | "anthropic" | "google-ai" |
+        "vertex-ai" | "aws-bedrock"
+      ) ~ !(CharPredicate.AlphaNum | '_' | '-') ~ WSS |
+      (
+        '"' ~
+        capture(
+          "openai-responses" | "openai-generic" | "openai" |
+          "azure-openai" | "anthropic" | "google-ai" |
+          "vertex-ai" | "aws-bedrock"
+        ) ~
+        '"'
+      )
+    ) ~ WSS ~> ((s: String) => BAMLProvider.values.find(_.rep == s).get)
 
 end BAMLTokensWithActions
