@@ -29,9 +29,32 @@ trait BAMLSyntaxWithActions(
 
   def ClassField: Rule1[Any] = ???
 
-  def EnumDeclaration: Rule1[Any] = ???
+  def EnumDeclaration: Rule1[BAMLEnumDeclaration] = rule:
+    "enum" ~ WSS ~ Identifier ~
+    "{" ~ WSS ~
+    oneOrMore(EnumValue) ~
+    "}" ~ WSS ~>
+    ((name: Name, values: Seq[BAMLEnumValue]) =>
+      val declaration = BAMLEnumDeclaration(name, values)
+      _symbolTable = _symbolTable.addDeclaration(declaration).get
+      declaration
+    )
 
-  def EnumValue: Rule1[Any] = ???
+  def EnumValue: Rule1[BAMLEnumValue] = rule:
+    Identifier ~
+    optional(
+      "@alias" ~ WSS ~ "(" ~ WSS ~
+      StringLiteralRule ~ ")" ~ WSS
+    ) ~
+    optional(
+      "@description" ~ WSS ~ "(" ~ WSS ~
+      StringLiteralRule ~ ")" ~ WSS
+    ) ~>
+    ((name: Name,
+      alias: Option[BAMLStringValue],
+      description: Option[BAMLStringValue]) =>
+      BAMLEnumValue(name, alias, description)
+    )
 
   def Type: Rule1[Any] = ???
 
