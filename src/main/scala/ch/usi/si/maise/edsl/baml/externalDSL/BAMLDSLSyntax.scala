@@ -49,8 +49,8 @@ trait BAMLSyntax extends BAMLTokens:
   // matches a primitive type or a custom type
   // optionally followed by any number of ? or [] suffixes
   def Type: Rule0 = rule:
-    (("bool" | "int" | "float" | "string" | "null") ~
-    !(CharPredicate.AlphaNum | '_') ~ WSS |
+    // '~' has higher precedence than '|', so sequences are grouped before alternatives
+    (("bool" | "int" | "float" | "string" | "null") ~ !(CharPredicate.AlphaNum | '_') ~ WSS |
     Identifier) ~
     zeroOrMore(("?" | "[]") ~ WSS) // semantic checks will reject invalid combinations
 

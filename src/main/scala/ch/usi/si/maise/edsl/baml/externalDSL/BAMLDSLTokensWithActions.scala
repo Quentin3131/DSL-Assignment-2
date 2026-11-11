@@ -105,9 +105,9 @@ trait BAMLTokensWithActions extends BAMLBase:
           "openai-responses" | "openai-generic" | "openai" |
           "azure-openai" | "anthropic" | "google-ai" |
           "vertex-ai" | "aws-bedrock"
-        ) ~
-        '"'
+        ) ~ '"'
       )
-    ) ~ WSS ~> ((s: String) => BAMLProvider.values.find(_.rep == s).get)
+    ) ~ WSS ~> 
+    ((s: String) => BAMLProvider.values.find(provider => provider.rep == s).get)
 
 end BAMLTokensWithActions
