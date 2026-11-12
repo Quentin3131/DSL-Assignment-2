@@ -20,49 +20,47 @@ trait BAMLSyntax extends BAMLTokens:
 
   // matches a class declaration with a name and zero or more fields
   def ClassDeclaration: Rule0 = rule:
-    "class" ~ WSS ~ Identifier ~
-    "{" ~ WSS ~
+    `class` ~ Identifier ~
+    `{` ~
     zeroOrMore(ClassField) ~
-    "}" ~ WSS
+    `}`
 
   // matches a class field with a name and type
   // optionally followed by an alias and description
   def ClassField: Rule0 = rule:
     Identifier ~ Type ~
-    optional("@alias" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ WSS ~ ")" ~ WSS) ~
-    optional("@description" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ ")" ~ WSS)
+    optional(`@alias` ~ `(` ~ StringLiteralRule ~ WSS ~ `)`) ~
+    optional(`@description` ~ `(` ~ StringLiteralRule ~ `)`)
 
   // matches an enum declaration with a name and one or more values
   def EnumDeclaration: Rule0 = rule:
-    "enum" ~ WSS ~ Identifier ~
-    "{" ~ WSS ~
+    `enum` ~ Identifier ~
+    `{` ~
     oneOrMore(EnumValue) ~
-    "}" ~ WSS
+    `}`
 
   // matches an enum value with a name
   // optionally followed by an alias and description
   def EnumValue: Rule0 = rule:
     Identifier ~
-    optional("@alias" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ WSS ~ ")" ~ WSS) ~
-    optional("@description" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ WSS ~ ")" ~ WSS)
+    optional(`@alias` ~ `(` ~ StringLiteralRule ~ WSS ~ `)`) ~
+    optional(`@description` ~ `(` ~ StringLiteralRule ~ WSS ~ `)`)
 
   // matches a primitive type or a custom type
   // optionally followed by any number of ? or [] suffixes
   def Type: Rule0 = rule:
-    // '~' has higher precedence than '|', so sequences are grouped before alternatives
-    (("bool" | "int" | "float" | "string" | "null") ~ !(CharPredicate.AlphaNum | '_') ~ WSS |
-    Identifier) ~
+    (`bool` | `int` | `float` | `string` | `null` | Identifier) ~
     zeroOrMore(("?" | "[]") ~ WSS) // semantic checks will reject invalid combinations
 
   // matches a client declaration with a name, provider, and options
   def ClientDeclaration: Rule0 = rule:
-    "client" ~ WSS ~ "<" ~ WSS ~ "llm" ~ WSS ~ ">" ~ WSS ~
-    Identifier ~ "{" ~ WSS ~
-    "provider" ~ WSS ~ ProviderRule ~
-    "options" ~ WSS ~ "{" ~ WSS ~
+    `client` ~ `<` ~ `llm` ~ `>` ~
+    Identifier ~ `{` ~
+    `provider` ~ ProviderRule ~
+    `options` ~ `{` ~
     zeroOrMore(ClientOption) ~
-    "}" ~ WSS ~
-    "}" ~ WSS
+    `}` ~
+    `}`
 
   // matches a client option with a name and a value
   // the value can be a string, float, integer, boolean, or environment variable
@@ -77,16 +75,16 @@ trait BAMLSyntax extends BAMLTokens:
   // matches a function declaration with a name, parameters, and return type
   // followed by a body specifying a client and prompt
   def FunctionDeclaration: Rule0 = rule:
-    "function" ~ WSS ~ Identifier ~
-    "(" ~ WSS ~
-    Identifier ~ ":" ~ WSS ~ Type ~
-    zeroOrMore("," ~ WSS ~ Identifier ~ ":" ~ WSS ~ Type) ~
-    ")" ~ WSS ~
-    "->" ~ WSS ~ Type ~
-    "{" ~ WSS ~
-    "client" ~ WSS ~ Identifier ~
-    "prompt" ~ WSS ~ BlockStringRule ~
-    "}" ~ WSS
+    `function` ~ Identifier ~
+    `(` ~
+    Identifier ~ `:` ~ Type ~
+    zeroOrMore(`,` ~ Identifier ~ `:` ~ Type) ~
+    `)` ~
+    `->` ~ Type ~
+    `{` ~
+    `client` ~ Identifier ~
+    `prompt` ~ BlockStringRule ~
+    `}`
 
 end BAMLSyntax
 

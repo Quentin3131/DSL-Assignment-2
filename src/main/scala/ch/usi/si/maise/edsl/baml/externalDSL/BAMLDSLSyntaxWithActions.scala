@@ -26,8 +26,6 @@ trait BAMLSyntaxWithActions(
     EOI ~>
     ((declarations: Seq[BAMLTopLevelElement]) => BAMLFile(declarations))
 
-  /* Remember to refine all Rule1[Any] rules to their proper semantic model type instead of Any */
-
   def TopLevelElementDeclaration: Rule1[BAMLTopLevelElement] = rule:
     ClassDeclaration |
     EnumDeclaration |
@@ -35,10 +33,10 @@ trait BAMLSyntaxWithActions(
     FunctionDeclaration
 
   def ClassDeclaration: Rule1[BAMLClassDeclaration] = rule:
-    "class" ~ WSS ~ Identifier ~
-    "{" ~ WSS ~
+    `class` ~ Identifier ~
+    `{` ~
     zeroOrMore(ClassField) ~
-    "}" ~ WSS ~>
+    `}` ~>
     (
       (name: Name, fields: Seq[BAMLClassField]) =>
         val declaration = BAMLClassDeclaration(name, fields)
@@ -52,8 +50,8 @@ trait BAMLSyntaxWithActions(
 
   def ClassField: Rule1[BAMLClassField] = rule:
     Identifier ~ Type ~
-    optional("@alias" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ WSS ~ ")" ~ WSS) ~
-    optional("@description" ~ WSS ~ "(" ~ WSS ~ StringLiteralRule ~ ")" ~ WSS) ~>
+    optional(`@alias` ~ `(` ~ StringLiteralRule ~ `)`) ~
+    optional(`@description` ~ `(` ~ StringLiteralRule ~ `)`) ~>
     (
       (name: Name,
       typeName: BAMLType,
@@ -63,10 +61,10 @@ trait BAMLSyntaxWithActions(
     )
 
   def EnumDeclaration: Rule1[BAMLEnumDeclaration] = rule:
-    "enum" ~ WSS ~ Identifier ~
-    "{" ~ WSS ~
+    `enum` ~ Identifier ~
+    `{` ~
     oneOrMore(EnumValue) ~
-    "}" ~ WSS ~>
+    `}` ~>
     ((name: Name, values: Seq[BAMLEnumValue]) =>
       val declaration = BAMLEnumDeclaration(name, values)
       val result: Try[BAMLEnumDeclaration] =
@@ -80,12 +78,12 @@ trait BAMLSyntaxWithActions(
   def EnumValue: Rule1[BAMLEnumValue] = rule:
     Identifier ~
     optional(
-      "@alias" ~ WSS ~ "(" ~ WSS ~
-      StringLiteralRule ~ ")" ~ WSS
+      `@alias` ~ `(` ~
+      StringLiteralRule ~ `)`
     ) ~
     optional(
-      "@description" ~ WSS ~ "(" ~ WSS ~
-      StringLiteralRule ~ ")" ~ WSS
+      `@description` ~ `(` ~
+      StringLiteralRule ~ `)`
     ) ~>
     ((name: Name,
       alias: Option[BAMLStringValue],
@@ -94,21 +92,23 @@ trait BAMLSyntaxWithActions(
     )
 
   def Type: Rule1[BAMLType] = rule:
-    // Push the matched primitive type onto the parser's value stack
-    ((("bool" ~ !(CharPredicate.AlphaNum | '_') ~ WSS ~ push(BAMLPrimitiveType.BoolType)) |
-    ("int" ~ !(CharPredicate.AlphaNum | '_') ~ WSS ~ push(BAMLPrimitiveType.IntType)) |
-    ("float" ~ !(CharPredicate.AlphaNum | '_') ~ WSS ~ push(BAMLPrimitiveType.FloatType)) |
-    ("string" ~ !(CharPredicate.AlphaNum | '_') ~ WSS ~ push(BAMLPrimitiveType.StringType)) |
-    ("null" ~ !(CharPredicate.AlphaNum | '_') ~ WSS ~ push(BAMLPrimitiveType.NullType))) |
-    Identifier ~> ((name: Name) => _symbolTable.resolveType(name).getOrFailParser)) ~
+    (
+      (`bool` ~ push(BAMLPrimitiveType.BoolType)) |
+      (`int` ~ push(BAMLPrimitiveType.IntType)) |
+      (`float` ~ push(BAMLPrimitiveType.FloatType)) |
+      (`string` ~ push(BAMLPrimitiveType.StringType)) |
+      (`null` ~ push(BAMLPrimitiveType.NullType)) |
+      (Identifier ~>
+        ((name: Name) => _symbolTable.resolveType(name).getOrFailParser))
+    ) ~
     zeroOrMore(capture("?" | "[]") ~ WSS) ~>
     ((typeName: BAMLType, suffixes: Seq[String]) =>
       Try {
         var currentType = typeName
 
-        // Iterate over each suffix, wrapping the current type in an optional or list type
-        // E.g. suffixes = Seq("[]", "?", "[]", "[]") and typeName = IntType
-        // yields BAMLListType(BAMLListType(BAMLOptionalType(BAMLListType(IntType))))
+        // Apply suffixes in order.
+        // For example: int?[] becomes
+        // BAMLListType(BAMLOptionalType(IntType)).
         suffixes.foreach { suffix =>
           currentType = suffix match
             case "?"  => BAMLOptionalType(currentType)
@@ -119,13 +119,13 @@ trait BAMLSyntaxWithActions(
     )
 
   def ClientDeclaration: Rule1[BAMLClientDeclaration] = rule:
-    "client" ~ WSS ~ "<" ~ WSS ~ "llm" ~ WSS ~ ">" ~ WSS ~
-    Identifier ~ "{" ~ WSS ~
-    "provider" ~ WSS ~ ProviderRule ~
-    "options" ~ WSS ~ "{" ~ WSS ~
+    `client` ~ `<` ~ `llm` ~ `>` ~
+    Identifier ~ `{` ~
+    `provider` ~ ProviderRule ~
+    `options` ~ `{` ~
     zeroOrMore(ClientOption) ~
-    "}" ~ WSS ~
-    "}" ~ WSS ~>
+    `}` ~
+    `}` ~>
     ((name: Name, provider: BAMLProvider, options: Seq[BAMLClientOption]) =>
       val result = Try {
         val declaration = BAMLClientDeclaration(name, provider, options)
@@ -145,23 +145,23 @@ trait BAMLSyntaxWithActions(
     ((key: Name, value: BAMLValue) => BAMLClientOption(key, value))
 
   def FunctionDeclaration: Rule1[BAMLFunctionDeclaration] = rule:
-    "function" ~ WSS ~ Identifier ~
-    "(" ~ WSS ~
-    (Identifier ~ ":" ~ WSS ~ Type ~>
+    `function` ~ Identifier ~
+    `(` ~
+    (Identifier ~ `:` ~ Type ~>
       ((name: Name, t: BAMLType) => BAMLParameter(name, t))) ~
     zeroOrMore(
-      "," ~ WSS ~ Identifier ~ ":" ~ WSS ~ Type ~>
+      `,` ~ Identifier ~ `:` ~ Type ~>
       ((name: Name, t: BAMLType) => BAMLParameter(name, t))
     ) ~>
     ((first: BAMLParameter, rest: Seq[BAMLParameter]) => first +: rest) ~
-    ")" ~ WSS ~
-    "->" ~ WSS ~ Type ~
-    "{" ~ WSS ~
-    "client" ~ WSS ~
+    `)` ~
+    `->` ~ Type ~
+    `{` ~
+    `client` ~
     (Identifier ~>
       ((name: Name) => _symbolTable.resolveClient(name).getOrFailParser)) ~
-    "prompt" ~ WSS ~ BlockStringRule ~
-    "}" ~ WSS ~>
+    `prompt` ~ BlockStringRule ~
+    `}` ~>
     ((name: Name,
       parameters: Seq[BAMLParameter],
       returnType: BAMLType,
