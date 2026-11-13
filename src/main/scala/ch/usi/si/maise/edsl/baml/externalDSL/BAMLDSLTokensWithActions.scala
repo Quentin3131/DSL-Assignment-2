@@ -199,7 +199,8 @@ trait BAMLTokensWithActions extends BAMLBase:
       )
     ) ~
     WSS ~>
-    ((s: String) =>
+    (
+      (s: String) =>
       BAMLProvider.values.find(provider => provider.rep == s).get
     )
 

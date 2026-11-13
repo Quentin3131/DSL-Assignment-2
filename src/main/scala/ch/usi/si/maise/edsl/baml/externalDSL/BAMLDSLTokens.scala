@@ -118,8 +118,7 @@ trait BAMLTokens extends BAMLBase:
   def IntLiteralRule: Rule0 = rule:
     optional('-') ~
     (
-      '0' |
-      (anyOf("123456789") ~ zeroOrMore(Digit))
+      '0' | (anyOf("123456789") ~ zeroOrMore(Digit))
     ) ~
     WSS
 
@@ -129,8 +128,7 @@ trait BAMLTokens extends BAMLBase:
   def FloatLiteralRule: Rule0 = rule:
     optional('-') ~
     (
-      '0' |
-      (anyOf("123456789") ~ zeroOrMore(Digit))
+      '0' | (anyOf("123456789") ~ zeroOrMore(Digit))
     ) ~
     '.' ~
     oneOrMore(Digit) ~
@@ -152,7 +150,7 @@ trait BAMLTokens extends BAMLBase:
   // "env." followed immediately by an identifier.
   // WSS isn't needed since Identifier already consumes whitespace.
   def EnvVariableRule: Rule0 = rule:
-    `env` ~ '.' ~ Identifier
+    `env` ~ `.` ~ Identifier
 
   // Match supported providers, bare or quoted.
   // Longer names must appear before their prefixes.

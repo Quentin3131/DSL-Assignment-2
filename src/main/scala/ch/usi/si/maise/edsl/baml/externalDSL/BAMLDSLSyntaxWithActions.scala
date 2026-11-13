@@ -21,9 +21,7 @@ trait BAMLSyntaxWithActions(
     WSS ~> (() => this._symbolTable = SymbolTable())
 
   def BAMLDSL: Rule1[BAMLFile] = rule:
-    WSS ~
-    zeroOrMore(TopLevelElementDeclaration) ~
-    EOI ~>
+    WSS ~ zeroOrMore(TopLevelElementDeclaration) ~ EOI ~>
     ((declarations: Seq[BAMLTopLevelElement]) => BAMLFile(declarations))
 
   def TopLevelElementDeclaration: Rule1[BAMLTopLevelElement] = rule:
@@ -39,23 +37,19 @@ trait BAMLSyntaxWithActions(
     `}` ~>
     (
       (name: Name, fields: Seq[BAMLClassField]) =>
-        val declaration = BAMLClassDeclaration(name, fields)
+        val result = Try {
+          val declaration = BAMLClassDeclaration(name, fields)
 
-        val trySymbolTable: Try[SymbolTable] = Try:
-          // ensure the number of distinct names is the same as the number of fields
           if fields.map(_.name).distinct.size != fields.size then
             throw IllegalArgumentException(
               s"Duplicate field in class ${name.rep}"
             )
-          _symbolTable.addDeclaration(declaration).get
 
-        val tryDeclaration = trySymbolTable.map(updatedSymbolTable => // only runs if trySymbolTable is Success
-          _symbolTable = updatedSymbolTable // update symbol table
-          declaration // return the declaration
-        )
+          _symbolTable = _symbolTable.addDeclaration(declaration).get
+          declaration
+        }
 
-        tryDeclaration.getOrFailParser // return the declaration or fail the parser if an error occurred
-
+        result.getOrFailParser
     )
 
   def ClassField: Rule1[BAMLClassField] = rule:
@@ -77,21 +71,18 @@ trait BAMLSyntaxWithActions(
     `}` ~>
     (
       (name: Name, values: Seq[BAMLEnumValue]) =>
-        val declaration = BAMLEnumDeclaration(name, values)
+        val result = Try {
+          val declaration = BAMLEnumDeclaration(name, values)
 
-        val trySymbolTable: Try[SymbolTable] = Try:
-          // ensure the number of distinct names is the same as the number of fields
           if values.map(_.name).distinct.size != values.size then
             throw IllegalArgumentException(
               s"Duplicate value in enum ${name.rep}"
             )
-          _symbolTable.addDeclaration(declaration).get
 
-        val tryDeclaration = trySymbolTable.map(updatedSymbolTable =>
-          _symbolTable = updatedSymbolTable
+          _symbolTable = _symbolTable.addDeclaration(declaration).get
           declaration
-        )
-        tryDeclaration.getOrFailParser
+        }
+        result.getOrFailParser
     )
 
   def EnumValue: Rule1[BAMLEnumValue] = rule:
@@ -104,7 +95,8 @@ trait BAMLSyntaxWithActions(
       `@description` ~ `(` ~
       StringLiteralRule ~ `)`
     ) ~>
-    ((name: Name,
+    (
+      (name: Name,
       alias: Option[BAMLStringValue],
       description: Option[BAMLStringValue]) =>
       BAMLEnumValue(name, alias, description)
@@ -121,13 +113,12 @@ trait BAMLSyntaxWithActions(
         ((name: Name) => _symbolTable.resolveType(name).getOrFailParser))
     ) ~
     zeroOrMore(capture("?" | "[]") ~ WSS) ~>
-    ((typeName: BAMLType, suffixes: Seq[String]) =>
-      Try {
+    (
+      (typeName: BAMLType, suffixes: Seq[String]) =>
+      Try { // use a try statement because the semantic model enforces that an optional list can't exist
         var currentType = typeName
 
-        // Apply suffixes in order.
-        // For example: int?[] becomes
-        // BAMLListType(BAMLOptionalType(IntType)).
+        // apply suffixes in order
         suffixes.foreach { suffix =>
           currentType = suffix match
             case "?"  => BAMLOptionalType(currentType)
@@ -145,13 +136,14 @@ trait BAMLSyntaxWithActions(
     zeroOrMore(ClientOption) ~
     `}` ~
     `}` ~>
-    ((name: Name, provider: BAMLProvider, options: Seq[BAMLClientOption]) =>
-      val result = Try {
-        val declaration = BAMLClientDeclaration(name, provider, options)
-        _symbolTable = _symbolTable.addDeclaration(declaration).get
-        declaration
-      }
-      result.getOrFailParser
+    (
+      (name: Name, provider: BAMLProvider, options: Seq[BAMLClientOption]) =>
+        val result = Try {
+          val declaration = BAMLClientDeclaration(name, provider, options)
+          _symbolTable = _symbolTable.addDeclaration(declaration).get
+          declaration
+        }
+        result.getOrFailParser
     )
 
   def ClientOption: Rule1[BAMLClientOption] = rule:
@@ -181,17 +173,18 @@ trait BAMLSyntaxWithActions(
       ((name: Name) => _symbolTable.resolveClient(name).getOrFailParser)) ~
     `prompt` ~ BlockStringRule ~
     `}` ~>
-    ((name: Name,
+    (
+      (name: Name,
       parameters: Seq[BAMLParameter],
       returnType: BAMLType,
       client: BAMLClientReference,
       prompt: BAMLPrompt) =>
-      val result = Try {
-        val declaration = BAMLFunctionDeclaration(name, parameters, returnType, client, prompt)
-        _symbolTable = _symbolTable.addDeclaration(declaration).get
-        declaration
-      }
-      result.getOrFailParser
+        val result = Try {
+          val declaration = BAMLFunctionDeclaration(name, parameters, returnType, client, prompt)
+          _symbolTable = _symbolTable.addDeclaration(declaration).get
+          declaration
+        }
+        result.getOrFailParser
     )
 
 end BAMLSyntaxWithActions
