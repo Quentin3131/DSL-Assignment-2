@@ -4,7 +4,7 @@ lazy val root = project
   .in(file("."))
   .settings(
     organization := "ch.usi.si.maise.edsl",
-    developers := List(Developer("firstname.lastname", "FirstName LastName", "firstanme.lastname@usi.ch", url("https://yourwebsite.com"))),
+    developers := List(Developer("quentin.weir", "Quentin Weir", "quentin.weir@usi.ch", url("https://yourwebsite.com")), Developer("maliheh.ghasemian", "Maliheh Ghasemian", "maliheh.ghasemian@usi.ch", url("https://yourwebsite.com"))),
     name := "assignment-02-template",
     version := "2026.1.0",
     scalaVersion := scala3Version,
