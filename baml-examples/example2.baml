@@ -11,6 +11,7 @@ enum TicketLabel {
 
 class TicketClassification {
   labels TicketLabel[]
+  labels float
 }
 
 enum SeniorityLevel {

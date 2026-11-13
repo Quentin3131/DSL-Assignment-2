@@ -40,12 +40,22 @@ trait BAMLSyntaxWithActions(
     (
       (name: Name, fields: Seq[BAMLClassField]) =>
         val declaration = BAMLClassDeclaration(name, fields)
-        val result: Try[BAMLClassDeclaration] =
-          _symbolTable.addDeclaration(declaration).map(updatedSymbolTable =>
-            _symbolTable = updatedSymbolTable
-            declaration
-          )
-        result.getOrFailParser
+
+        val trySymbolTable: Try[SymbolTable] = Try:
+          // ensure the number of distinct names is the same as the number of fields
+          if fields.map(_.name).distinct.size != fields.size then
+            throw IllegalArgumentException(
+              s"Duplicate field in class ${name.rep}"
+            )
+          _symbolTable.addDeclaration(declaration).get
+
+        val tryDeclaration = trySymbolTable.map(updatedSymbolTable => // only runs if trySymbolTable is Success
+          _symbolTable = updatedSymbolTable // update symbol table
+          declaration // return the declaration
+        )
+
+        tryDeclaration.getOrFailParser // return the declaration or fail the parser if an error occurred
+
     )
 
   def ClassField: Rule1[BAMLClassField] = rule:
@@ -65,14 +75,23 @@ trait BAMLSyntaxWithActions(
     `{` ~
     oneOrMore(EnumValue) ~
     `}` ~>
-    ((name: Name, values: Seq[BAMLEnumValue]) =>
-      val declaration = BAMLEnumDeclaration(name, values)
-      val result: Try[BAMLEnumDeclaration] =
-        _symbolTable.addDeclaration(declaration).map(updatedSymbolTable =>
+    (
+      (name: Name, values: Seq[BAMLEnumValue]) =>
+        val declaration = BAMLEnumDeclaration(name, values)
+
+        val trySymbolTable: Try[SymbolTable] = Try:
+          // ensure the number of distinct names is the same as the number of fields
+          if values.map(_.name).distinct.size != values.size then
+            throw IllegalArgumentException(
+              s"Duplicate value in enum ${name.rep}"
+            )
+          _symbolTable.addDeclaration(declaration).get
+
+        val tryDeclaration = trySymbolTable.map(updatedSymbolTable =>
           _symbolTable = updatedSymbolTable
           declaration
         )
-      result.getOrFailParser
+        tryDeclaration.getOrFailParser
     )
 
   def EnumValue: Rule1[BAMLEnumValue] = rule:
